@@ -1,21 +1,383 @@
 <!DOCTYPE html>
-<html lang="cs">
+
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#39D353">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="WorkTime">
-    <meta name="theme-color" content="#39D353">
-    <title>WorkTime Tracker</title>
-    <base href="/Hodinyfoodtruck/">
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-    <link rel="icon" href="icons/favicon.png">
-    <link rel="stylesheet" href="style.css">
-    <script type="module" src="app.js"></script>
+
+```
+<title>WorkTime Tracker</title>
+<meta name="description" content="Professional time tracking application with offline support">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+
+<!-- Apple Touch Icons -->
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+
+<!-- Preload critical resources -->
+<link rel="preload" href="style.css" as="style">
+<link rel="preload" href="app.js" as="script">
+
+<!-- Stylesheets -->
+<link rel="stylesheet" href="style.css">
+
+<!-- Module imports will be handled by app.js -->
+<script type="module" src="app.js" defer></script>
+```
+
 </head>
 <body>
-    <main id="app" class="app main-content" role="main"></main>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-spinner"></div>
+        <p>Loading WorkTime...</p>
+    </div>
+
+```
+<!-- Main Application Container -->
+<div id="app" class="app-container" style="display: none;">
+    
+    <!-- Navigation Header -->
+    <header class="app-header">
+        <nav class="ios-segmented-control" id="main-nav">
+            <div class="ios-segment-indicator"></div>
+            <button class="ios-segment" data-route="/timer" aria-label="Timer">
+                <span class="nav-icon">⏱️</span>
+                <span class="nav-label">Timer</span>
+            </button>
+            <button class="ios-segment" data-route="/history" aria-label="History">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">History</span>
+            </button>
+            <button class="ios-segment" data-route="/projects" aria-label="Projects">
+                <span class="nav-icon">📁</span>
+                <span class="nav-label">Projects</span>
+            </button>
+            <button class="ios-segment" data-route="/settings" aria-label="Settings">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Settings</span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content" id="main-content">
+        <!-- Dynamic content will be injected here by router -->
+        <div id="router-outlet">
+            <!-- Timer View (Default) -->
+            <div class="view" id="timer-view">
+                <div class="timer-container">
+                    <div class="current-time-display">
+                        <span id="current-time" class="time-display">00:00:00</span>
+                    </div>
+                    
+                    <div class="timer-controls">
+                        <button id="start-stop-btn" class="ios-button timer-btn">
+                            <span class="btn-icon">▶️</span>
+                            <span class="btn-text">Start</span>
+                        </button>
+                    </div>
+
+                    <div class="current-session">
+                        <h3>Current Session</h3>
+                        <div class="session-info">
+                            <div class="session-project">
+                                <label for="project-select">Project:</label>
+                                <select id="project-select" class="ios-input">
+                                    <option value="">Select project...</option>
+                                </select>
+                            </div>
+                            <div class="session-description">
+                                <label for="task-description">Task:</label>
+                                <input type="text" id="task-description" class="ios-input" placeholder="What are you working on?">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="today-summary">
+                        <h3>Today's Summary</h3>
+                        <div class="summary-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Total Time:</span>
+                                <span class="stat-value" id="today-total">0h 0m</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Sessions:</span>
+                                <span class="stat-value" id="today-sessions">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History View -->
+            <div class="view" id="history-view" style="display: none;">
+                <div class="history-container">
+                    <div class="history-controls">
+                        <input type="date" id="date-filter" class="ios-input">
+                        <button id="export-btn" class="ios-button">Export</button>
+                    </div>
+                    <div id="history-list" class="history-list">
+                        <!-- History items will be dynamically populated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Projects View -->
+            <div class="view" id="projects-view" style="display: none;">
+                <div class="projects-container">
+                    <div class="projects-header">
+                        <h2>Projects</h2>
+                        <button id="add-project-btn" class="ios-button">+ Add Project</button>
+                    </div>
+                    <div id="projects-list" class="projects-list">
+                        <!-- Projects will be dynamically populated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings View -->
+            <div class="view" id="settings-view" style="display: none;">
+                <div class="settings-container">
+                    <h2>Settings</h2>
+                    <div class="settings-group">
+                        <h3>Notifications</h3>
+                        <div class="setting-item">
+                            <label for="notifications-enabled">Enable Notifications</label>
+                            <input type="checkbox" id="notifications-enabled" class="ios-toggle">
+                        </div>
+                    </div>
+                    <div class="settings-group">
+                        <h3>Export</h3>
+                        <div class="setting-item">
+                            <label for="auto-export">Monthly Auto Export</label>
+                            <input type="checkbox" id="auto-export" class="ios-toggle">
+                        </div>
+                    </div>
+                    <div class="settings-group">
+                        <h3>About</h3>
+                        <div class="setting-item">
+                            <span>Version: 1.0.0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Floating Action Button -->
+    <button id="fab" class="fab" aria-label="Quick start timer">
+        ⏱️
+    </button>
+</div>
+
+<!-- Modals and Overlays -->
+<div id="modal-overlay" class="modal" style="display: none;">
+    <div class="modal-content" id="modal-content">
+        <!-- Modal content will be dynamically populated -->
+    </div>
+</div>
+
+<!-- Pull-to-Refresh Indicator -->
+<div class="pull-indicator" id="pull-indicator">
+    <div class="pull-icon">↻</div>
+</div>
+
+<!-- Offline Indicator -->
+<div id="offline-indicator" class="offline-indicator" style="display: none;">
+    <span>📴 Working Offline</span>
+</div>
+
+<!-- Toast Notifications -->
+<div id="toast-container" class="toast-container"></div>
+
+<!-- Web Components will be registered by app.js -->
+<!-- Custom elements like <timer-widget>, <project-card>, etc. -->
+
+<style>
+    /* Additional styles for the HTML structure */
+    .loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--bg);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--muted);
+        border-top: 3px solid var(--accent);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .app-header {
+        position: sticky;
+        top: 0;
+        background: var(--bg);
+        z-index: 100;
+        padding-top: env(safe-area-inset-top);
+    }
+
+    .nav-icon {
+        display: block;
+        font-size: 20px;
+        margin-bottom: 4px;
+    }
+
+    .nav-label {
+        display: block;
+        font-size: 12px;
+    }
+
+    .timer-container {
+        padding: 20px;
+        text-align: center;
+    }
+
+    .time-display {
+        font-size: 48px;
+        font-weight: bold;
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .timer-btn {
+        margin: 20px 0;
+        min-width: 120px;
+    }
+
+    .btn-icon {
+        margin-right: 8px;
+    }
+
+    .current-session {
+        margin: 30px 0;
+        padding: 20px;
+        background: var(--surface);
+        border-radius: 10px;
+    }
+
+    .session-info > div {
+        margin: 15px 0;
+    }
+
+    .ios-input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--muted);
+        border-radius: 8px;
+        background: var(--bg);
+        color: var(--text);
+        font-size: 16px;
+    }
+
+    .today-summary {
+        margin-top: 30px;
+        padding: 20px;
+        background: var(--surface);
+        border-radius: 10px;
+    }
+
+    .summary-stats {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 15px;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-label {
+        display: block;
+        color: var(--muted);
+        font-size: 14px;
+    }
+
+    .stat-value {
+        display: block;
+        font-size: 18px;
+        font-weight: bold;
+        color: var(--accent);
+    }
+
+    .offline-indicator {
+        position: fixed;
+        top: env(safe-area-inset-top);
+        left: 0;
+        right: 0;
+        background: #ff6b35;
+        color: white;
+        text-align: center;
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    .toast-container {
+        position: fixed;
+        bottom: calc(80px + env(safe-area-inset-bottom));
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+    }
+
+    @media (max-width: 480px) {
+        .time-display {
+            font-size: 36px;
+        }
+        
+        .nav-label {
+            display: none;
+        }
+        
+        .ios-segment {
+            padding: 12px 8px;
+        }
+    }
+</style>
+
+<script>
+    // Critical loading script to show app once modules are loaded
+    window.addEventListener('DOMContentLoaded', () => {
+        // This will be enhanced by app.js
+        setTimeout(() => {
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+        }, 1000);
+    });
+
+    // Basic offline detection
+    window.addEventListener('online', () => {
+        document.getElementById('offline-indicator').style.display = 'none';
+    });
+
+    window.addEventListener('offline', () => {
+        document.getElementById('offline-indicator').style.display = 'block';
+    });
+</script>
+```
+
 </body>
 </html>
